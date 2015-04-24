@@ -174,12 +174,12 @@ case SIGCHLD: /* 子进程结束时传送给父进程的信号 */
 	ret = waitpid(-1,&status,WNOHANG);
 	if (ret == 0)
 		return;
-	if(WIFEXITED(status)){
+	if(WIFEXITED(status)){//子进程正常退出
 		current->job->state = DONE;
 		printf("normal termation, exit status = %d\n",WEXITSTATUS(status));
-	}else if (WIFSIGNALED(status)){
+	}else if (WIFSIGNALED(status)){//异常结束子进程
 		printf("abnormal termation, signal number = %d\n",WTERMSIG(status));
-	}else if (WIFSTOPPED(status)){
+	}else if (WIFSTOPPED(status)){//若为当前暂停子进程返回的状态，则为真；对于这种情况可执行WSTOPSIG(status)，取使子进程暂停的信号编号。
 		printf("child stopped, signal number = %d\n",WSTOPSIG(status));
 	}
 	return;
@@ -196,7 +196,7 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 	char **arglist;
 	sigset_t zeromask;
 
-	sigemptyset(&zeromask);
+	sigemptyset(&zeromask);//初始化由set指定的信号集，信号集里面的所有信号被清空
 
 	/* 封装jobinfo数据结构 */
 	newjob = (struct jobinfo *)malloc(sizeof(struct jobinfo));
@@ -212,7 +212,7 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 	newjob->cmdarg = arglist;
 	offset = enqcmd.data;
 	argvec = enqcmd.data;
-	while (i < enqcmd.argnum){
+	while (i < enqcmd.argnum){//将命令以':'为分隔符分隔命令，并存入newjob->cmdarg
 		if(*offset == ':'){
 			*offset++ = '\0';
 			q = (char*)malloc(offset - argvec);
@@ -371,13 +371,13 @@ int main()
 	struct stat statbuf;
 	struct sigaction newact,oldact1,oldact2;
 
-	if(stat("/tmp/server",&statbuf)==0){
+	if(stat("/tmp/server",&statbuf)==0){//通过文件名获取文件信息，并保存在statbuf结构体中
 		/* 如果FIFO文件存在,删掉 */
 		if(remove("/tmp/server")<0)
 			error_sys("remove failed");
 	}
 
-	if(mkfifo("/tmp/server",0666)<0)
+	if(mkfifo("/tmp/server",0666)<0)//mkfifo ()会依参数pathname建立特殊的FIFO文件，该文件必须不存在，而参数mode为该文件的权限
 		error_sys("mkfifo failed");
 	/* 在非阻塞模式下打开FIFO */
 	if((fifo=open("/tmp/server",O_RDONLY|O_NONBLOCK))<0)
@@ -388,7 +388,7 @@ int main()
 	sigemptyset(&newact.sa_mask);
 	newact.sa_flags=SA_SIGINFO;
 	sigaction(SIGCHLD,&newact,&oldact1);
-	sigaction(SIGVTALRM,&newact,&oldact2);
+	sigaction(SIGVTALRM,&newact,&oldact2);//实际时间报警时钟信号
 
 	/* 设置时间间隔为1000毫秒 */
 	interval.tv_sec=1;
