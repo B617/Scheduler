@@ -27,8 +27,9 @@ void scheduler()
 	bzero(&cmd,DATALEN);
 	if((count=read(fifo,&cmd,DATALEN))<0)
 		error_sys("read fifo failed");
+//	printf("%d\n",count);
 #ifdef DEBUG
-
+	printf("Reading whether other process send command!\n");
 	if(count){
 		printf("cmd cmdtype\t%d\ncmd defpri\t%d\ncmd data\t%s\n",cmd.type,cmd.defpri,cmd.data);
 	}
@@ -37,25 +38,45 @@ void scheduler()
 #endif
 
 	/* 更新等待队列中的作业 */
+	#ifdef DEBUG
+		printf("Update jobs in wait queue!\n");
+	#endif
+	
 	updateall();
 
 	switch(cmd.type){
 	case ENQ:
+		#ifdef DEBUG
+			printf("Execute enq!\n");
+		#endif
 		do_enq(newjob,cmd);
 		break;
 	case DEQ:
+		#ifdef DEBUG
+			printf("Execute deq!\n");
+		#endif
 		do_deq(cmd);
 		break;
 	case STAT:
+		#ifdef DEBUG
+			printf("Execute stat\n");
+		#endif
 		do_stat(cmd);
 		break;
 	default:
 		break;
 	}
+	
+	#ifdef DEBUG
+		printf("Select which job to run next!\n");
+	#endif
 
 	/* 选择高优先级作业 */
 	next=jobselect();
 	/* 作业切换 */
+	#ifdef DEBUG
+		printf("Switch to the next job!\n");
+	#endif
 	jobswitch();
 }
 

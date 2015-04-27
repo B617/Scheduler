@@ -24,6 +24,8 @@ int main(int argc,char *argv[])
 	int fd;
 	char c,*offset;
 	struct jobcmd enqcmd;
+	
+//	printf("comming into enq\n");
 
 	if(argc==1)
 	{
