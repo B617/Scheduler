@@ -12,7 +12,7 @@
 #define DEBUG
 #endif
 
-#undef DEBUG
+//#undef DEBUG
 
 #define BUFLEN 100
 #define GLOBALFILE "screendump"
