@@ -11,7 +11,8 @@
 #include "job.h"
 
 //#define DEBUG
-#define SHOW_UPDATE
+//#define SHOW_UPDATE
+#define SHOW_INSTR
 
 int jobid=0;
 int siginfo=1;
@@ -63,19 +64,43 @@ void scheduler()
 		#ifdef DEBUG
 			printf("Execute enq!\n");
 		#endif
+		#ifdef SHOW_INSTR
+			printf("before enq\n");
+			do_stat(cmd);
+		#endif
 		do_enq(newjob,cmd);
+		#ifdef SHOW_INSTR
+			printf("after enq\n");
+			do_stat(cmd);
+		#endif
 		break;
 	case DEQ:
 		#ifdef DEBUG
 			printf("Execute deq!\n");
 		#endif
+		#ifdef SHOW_INSTR
+			printf("before deq\n");
+			do_stat(cmd);
+		#endif
 		do_deq(cmd);
+		#ifdef SHOW_INSTR
+			printf("after deq\n");
+			do_stat(cmd);
+		#endif
 		break;
 	case STAT:
 		#ifdef DEBUG
 			printf("Execute stat\n");
 		#endif
+		#ifdef SHOW_INSTR
+			printf("before stat\n");
+			do_stat(cmd);
+		#endif
 		do_stat(cmd);
+		#ifdef SHOW_INSTR
+			printf("after stat\n");
+			do_stat(cmd);
+		#endif
 		break;
 	default:
 		break;
