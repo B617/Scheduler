@@ -63,6 +63,7 @@ void do_stat(struct jobcmd statcmd);
 void updateall();
 struct waitqueue* jobselect();
 void jobswitch();
+void showjob(struct jobinfo *job);
 
 void error_doit(int errnoflag,const char *fmt,va_list ap);
 void error_sys(const char *fmt,...);

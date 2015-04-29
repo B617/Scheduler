@@ -12,7 +12,8 @@
 
 //#define DEBUG
 //#define SHOW_UPDATE
-#define SHOW_INSTR
+//#define SHOW_INSTR
+#define SHOW_SELECT
 
 int jobid=0;
 int siginfo=1;
@@ -161,6 +162,15 @@ struct waitqueue* jobselect()
 		if (select == selectprev)
 				head = NULL;
 	}
+	#ifdef SHOW_SELECT
+		printf("select job:\n");
+		if(select==NULL){
+			printf("NULL\n");
+		}
+		else{
+			showjob(select->job);
+		}
+	#endif
 	return select;
 }
 
@@ -425,6 +435,39 @@ void do_stat(struct jobcmd statcmd)
 			timebuf,
 			"READY");
 	}
+}
+
+void showjob(struct jobinfo *job){
+	char timebuf[BUFLEN];
+	char *state;
+	if(job==NULL){
+		printf("NULL\n");
+		return;
+	}
+	strcpy(timebuf,ctime(&(job->create_time)));
+	timebuf[strlen(timebuf)-1]='\0';
+	switch (job->state){
+		case 0:
+			state="READY";
+			break;
+		case 1:
+			state="RUNNING";
+			break;
+		case 2:
+			state="DONE";
+			break;
+		default:
+			break;
+	}
+	printf("JOBID\tPID\tOWNER\tRUNTIME\tWAITTIME\tCREATTIME\t\tSTATE\n");
+	printf("%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
+			job->jid,
+			job->pid,
+			job->ownerid,
+			job->run_time,
+			job->wait_time,
+			timebuf,
+			state);
 }
 
 int main()
