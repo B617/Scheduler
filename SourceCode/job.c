@@ -13,7 +13,8 @@
 //#define DEBUG
 //#define SHOW_UPDATE
 //#define SHOW_INSTR
-#define SHOW_SELECT
+//#define SHOW_SELECT
+#define SHOW_SWITCH
 
 int jobid=0;
 int siginfo=1;
@@ -110,14 +111,29 @@ void scheduler()
 	#ifdef DEBUG
 		printf("Select which job to run next!\n");
 	#endif
-
+	
+//	if(head==NULL)
+//		printf("before select,head=NULL\n");
 	/* 选择高优先级作业 */
 	next=jobselect();
-	/* 作业切换 */
+
+//	if(head==NULL)
+//		printf("after select,head=NULL\n");
+
 	#ifdef DEBUG
 		printf("Switch to the next job!\n");
 	#endif
+
+	/* 作业切换 */
+	#ifdef SHOW_SWITCH
+		printf("before switch\n");
+		do_stat(cmd);
+	#endif
 	jobswitch();
+	#ifdef SHOW_SWITCH
+		printf("after switch\n");
+		do_stat(cmd);
+	#endif
 }
 
 int allocjid()
@@ -412,6 +428,7 @@ void do_stat(struct jobcmd statcmd)
 	/* 打印信息头部 */
 	printf("JOBID\tPID\tOWNER\tRUNTIME\tWAITTIME\tCREATTIME\t\tSTATE\n");
 	if(current){
+//		printf("current\n");
 		strcpy(timebuf,ctime(&(current->job->create_time)));
 		timebuf[strlen(timebuf)-1]='\0';
 		printf("%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
@@ -422,8 +439,11 @@ void do_stat(struct jobcmd statcmd)
 			current->job->wait_time,
 			timebuf,"RUNNING");
 	}
-
+//	if(head==NULL){
+//		printf("head=NULL\n");
+//	}
 	for(p=head;p!=NULL;p=p->next){
+//		printf("queue\n");
 		strcpy(timebuf,ctime(&(p->job->create_time)));
 		timebuf[strlen(timebuf)-1]='\0';
 		printf("%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
@@ -521,4 +541,10 @@ do_enq
 ->	get newcode and head=newcode
 ->	next=jobselect=head
 ->	current=next
+*/
+
+/*
+select & switch:
+select:choose a job from the queue(queue.remove(job));
+switch:switch and put the running job into the queue(queue.add(job));
 */
