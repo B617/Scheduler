@@ -11,6 +11,7 @@
 #include "job.h"
 
 //#define DEBUG
+#define SHOW_UPDATE
 
 int jobid=0;
 int siginfo=1;
@@ -43,8 +44,19 @@ void scheduler()
 	#ifdef DEBUG
 		printf("Update jobs in wait queue!\n");
 	#endif
+
+	
+	#ifdef SHOW_UPDATE
+		printf("before update\n");
+		do_stat(cmd);
+	#endif
 	
 	updateall();
+
+	#ifdef SHOW_UPDATE
+		printf("after update\n");
+		do_stat(cmd);
+	#endif
 
 	switch(cmd.type){
 	case ENQ:
@@ -120,8 +132,8 @@ struct waitqueue* jobselect()
 				selectprev = prev;
 				highest = p->job->curpri;
 			}
-			selectprev->next = select->next;
-			if (select == selectprev)
+		selectprev->next = select->next;
+		if (select == selectprev)
 				head = NULL;
 	}
 	return select;
@@ -434,3 +446,11 @@ int main()
 	close(globalfd);
 	return 0;
 }
+
+/*
+How to get the first current?
+do_enq
+->	get newcode and head=newcode
+->	next=jobselect=head
+->	current=next
+*/

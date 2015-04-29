@@ -9,4 +9,4 @@ stat: stat.c job.h error.c
 Demo: Demo.c
 	cc -o Demo Demo.c
 clean:
-	rm job enq deq stat Demo
+	rm job enq deq stat Demo *~

@@ -5,7 +5,7 @@
 #include <sys/ipc.h>
 #include <fcntl.h>
 #include "job.h"
-#define DEBUG
+//#define DEBUG
 /* 
  * √¸¡Ó”Ô∑®∏Ò Ω
  *     enq [-p num] e_file args
