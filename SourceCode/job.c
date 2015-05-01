@@ -14,15 +14,21 @@
 //#define SHOW_UPDATE
 //#define SHOW_INSTR
 //#define SHOW_SELECT
-#define SHOW_SWITCH
+//#define SHOW_SWITCH
+#define SHOW_SIGCHLD
 
 int jobid=0;
 int siginfo=1;
 int fifo;
 int globalfd;
+int goon=0;
 
 struct waitqueue *head=NULL;
 struct waitqueue *next=NULL,*current =NULL;
+
+void setGoon(){
+	goon=1;
+}
 
 /* 调度程序 */
 void scheduler()
@@ -251,6 +257,9 @@ void sig_handler(int sig,siginfo_t *info,void *notused)
 {
 	int status;
 	int ret;
+	#ifdef SHOW_SIGCHLD
+		struct jobcmd cmd;
+	#endif
 
 	switch (sig) {
 case SIGVTALRM: /* 到达计时器所设置的计时间隔 */
@@ -260,6 +269,13 @@ case SIGVTALRM: /* 到达计时器所设置的计时间隔 */
 	#endif
 	return;
 case SIGCHLD: /* 子进程结束时传送给父进程的信号 */
+	#ifdef DEBUG
+		printf("SIGCHLD RECEIVED!\n");
+	#endif
+
+	#ifdef SHOW_SIGCHLD
+		do_stat(cmd);
+	#endif
 	ret = waitpid(-1,&status,WNOHANG);
 	if (ret == 0)
 		return;
@@ -340,6 +356,8 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 
 	if(pid==0){
 		newjob->pid =getpid();
+
+		kill(getppid(),SIGUSR1);
 		/*阻塞子进程,等等执行*/
 		raise(SIGSTOP);
 #ifdef DEBUG
@@ -356,6 +374,11 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 			printf("exec failed\n");
 		exit(1);
 	}else{
+		signal(SIGUSR1,setGoon);
+		while(goon==0){
+//			printf("father is waiting\n");
+		}
+		goon=0;
 		newjob->pid=pid;
 	}
 }
