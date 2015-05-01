@@ -20,7 +20,7 @@ void usage()
 
 int main(int argc,char *argv[])
 {
-	int p=0;
+	int p=1;
 	int fd;
 	char c,*offset;
 	struct jobcmd enqcmd;

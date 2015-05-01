@@ -15,13 +15,14 @@
 //#define SHOW_INSTR
 //#define SHOW_SELECT
 //#define SHOW_SWITCH
-#define SHOW_SIGCHLD
+//#define SHOW_SIGCHLD
 
 int jobid=0;
 int siginfo=1;
 int fifo;
 int globalfd;
 int goon=0;
+int preemption=0;
 
 struct waitqueue *head=NULL;
 struct waitqueue *next=NULL,*current =NULL;
@@ -81,6 +82,12 @@ void scheduler()
 			printf("after enq\n");
 			do_stat(cmd);
 		#endif
+		if(preemption){
+			next=jobselect();
+			jobswitch();
+			preemption=0;
+			return;
+		}
 		break;
 	case DEQ:
 		#ifdef DEBUG
@@ -120,8 +127,14 @@ void scheduler()
 	
 //	if(head==NULL)
 //		printf("before select,head=NULL\n");
+	
+//	printf("%d\n",canswitchjob());
+	if(!canswitchjob()||!hasequalpri())
+		return ;
 	/* 选择高优先级作业 */
 	next=jobselect();
+
+//	showalljobs();
 
 //	if(head==NULL)
 //		printf("after select,head=NULL\n");
@@ -140,6 +153,8 @@ void scheduler()
 		printf("after switch\n");
 		do_stat(cmd);
 	#endif
+
+	showalljobs();
 }
 
 int allocjid()
@@ -152,17 +167,55 @@ void updateall()
 	struct waitqueue *p;
 
 	/* 更新作业运行时间 */
-	if(current)
+	if(current){
 		current->job->run_time += 1; /* 加1代表1000ms */
+		current->job->round_time+=1;
+//		printf("current_job_round_time=%d\n",current->job->round_time);
+	}
 
 	/* 更新作业等待时间及优先级 */
 	for(p = head; p != NULL; p = p->next){
 		p->job->wait_time += 1000;
-		if(p->job->wait_time >= 5000 && p->job->curpri < 3){
+		if(p->job->wait_time > 10000 && p->job->curpri < 3){
 			p->job->curpri++;
 			p->job->wait_time = 0;
 		}
 	}
+}
+
+int canswitchjob(){
+	int t;
+	if(current==NULL){
+//		printf("current==NULL\n");
+		return 1;
+	}
+	t=current->job->round_time;
+//	printf("%d\n",t);
+//	printf("%d\n",current->job->curpri);
+	switch(current->job->curpri){
+	case 1:
+		return t>=5;
+	case 2:
+		return t>=2;
+	case 3:
+		return t>=1;
+	default:
+		return 1;
+	}
+}
+
+int hasequalpri(){
+	struct waitqueue *p;
+	int nowpri;
+//	showalljobs();
+	if(current==NULL)
+		return 1;
+	nowpri=current->job->curpri;
+	for(p=head;p!=NULL;p=p->next){
+		if(p->job->curpri>=nowpri)
+			return 1;
+	}
+	return 0;
 }
 
 struct waitqueue* jobselect()
@@ -181,8 +234,9 @@ struct waitqueue* jobselect()
 				highest = p->job->curpri;
 			}
 		selectprev->next = select->next;
-		if (select == selectprev)
-				head = NULL;
+		if (select == selectprev){
+				head = head->next;
+		}
 	}
 	#ifdef SHOW_SELECT
 		printf("select job:\n");
@@ -224,6 +278,7 @@ void jobswitch()
 		current = next;
 		next = NULL;
 		current->job->state = RUNNING;
+		current->job->round_time=0;
 		kill(current->job->pid,SIGCONT);
 		return;
 	}
@@ -233,7 +288,9 @@ void jobswitch()
 		kill(current->job->pid,SIGSTOP);
 		current->job->curpri = current->job->defpri;
 		current->job->wait_time = 0;
+		current->job->round_time=0;
 		current->job->state = READY;
+		current->next=NULL;
 
 		/* 放回等待队列 */
 		if(head){
@@ -313,6 +370,7 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 	newjob->create_time = time(NULL);
 	newjob->wait_time = 0;
 	newjob->run_time = 0;
+	newjob->round_time=0;
 	arglist = (char**)malloc(sizeof(char*)*(enqcmd.argnum+1));
 	newjob->cmdarg = arglist;
 	offset = enqcmd.data;
@@ -326,6 +384,11 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 			argvec = offset;
 		}else
 			offset++;
+	}
+
+	//判断是否可以抢占
+	if(current!=NULL&&newjob->defpri>current->job->defpri){
+		preemption=1;
 	}
 
 	arglist[i] = NULL;
@@ -502,15 +565,55 @@ void showjob(struct jobinfo *job){
 		default:
 			break;
 	}
-	printf("JOBID\tPID\tOWNER\tRUNTIME\tWAITTIME\tCREATTIME\t\tSTATE\n");
-	printf("%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
+	printf("JOBID\tPID\tOWNER\tRUNTIME\tWAITTIME\tCURPRI\tRONDT\tSTATE\n");
+	printf("%d\t%d\t%d\t%d\t%d\t\t%d\t%d\t%s\n",
 			job->jid,
 			job->pid,
 			job->ownerid,
 			job->run_time,
 			job->wait_time,
-			timebuf,
+			job->curpri,
+			job->round_time,
 			state);
+}
+
+void showalljobs(){
+	struct waitqueue *p;
+	/*
+	*打印所有作业的统计信息:
+	*1.作业ID
+	*2.进程ID
+	*3.作业运行时间
+	*4.作业等待时间
+	*5.作业轮转时间
+	*6.作业当前优先级
+	*7.作业状态
+	*/
+
+	/* 打印信息头部 */
+	printf("JOBID\tPID\tOWNER\tRUN_T\tWAIT_T\tROUND_T\tCURPRI\tSTATE\n");
+	if(current){
+		printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
+			current->job->jid,
+			current->job->pid,
+			current->job->ownerid,
+			current->job->run_time,
+			current->job->wait_time,
+			current->job->round_time,
+			current->job->curpri,
+			"RUNNING");
+	}
+	for(p=head;p!=NULL;p=p->next){
+		printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
+			p->job->jid,
+			p->job->pid,
+			p->job->ownerid,
+			p->job->run_time,
+			p->job->wait_time,
+			p->job->round_time,
+			p->job->curpri,
+			"READY");
+	}
 }
 
 int main()
