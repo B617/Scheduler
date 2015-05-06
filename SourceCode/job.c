@@ -62,6 +62,7 @@ void scheduler()
 	#endif
 	
 	updateall();
+//	showalljobs();
 
 	#ifdef SHOW_UPDATE
 		printf("after update\n");
