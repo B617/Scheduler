@@ -310,7 +310,7 @@ void jobswitch()
 
 		printf("switch to Pid: %d\n",next->job->pid);
 		kill(current->job->pid,SIGSTOP);
-		current->job->curpri = current->job->defpri;
+//		current->job->curpri = current->job->defpri;
 		current->job->wait_time = 0;
 		current->job->round_time=0;
 		current->job->state = READY;
@@ -411,7 +411,7 @@ void do_enq(struct jobinfo *newjob,struct jobcmd enqcmd)
 	}
 
 	//判断是否可以抢占
-	if(current!=NULL&&newjob->defpri>current->job->defpri){
+	if(current!=NULL&&newjob->curpri>current->job->curpri){
 		preemption=1;
 	}
 
