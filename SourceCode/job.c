@@ -310,7 +310,7 @@ void jobswitch()
 
 		printf("switch to Pid: %d\n",next->job->pid);
 		kill(current->job->pid,SIGSTOP);
-//		current->job->curpri = current->job->defpri;
+		current->job->curpri = current->job->defpri;
 		current->job->wait_time = 0;
 		current->job->round_time=0;
 		current->job->state = READY;
