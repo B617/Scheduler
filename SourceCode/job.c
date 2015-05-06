@@ -154,7 +154,7 @@ void scheduler()
 		do_stat(cmd);
 	#endif
 
-	showalljobs();
+//	showalljobs();
 }
 
 int allocjid()
@@ -164,7 +164,7 @@ int allocjid()
 
 void updateall()
 {
-	struct waitqueue *p;
+	struct waitqueue *p,*temp;
 
 	/* 更新作业运行时间 */
 	if(current){
@@ -174,13 +174,37 @@ void updateall()
 	}
 
 	/* 更新作业等待时间及优先级 */
-	for(p = head; p != NULL; p = p->next){
+	for(p = head; p != NULL;){
 		p->job->wait_time += 1000;
 		if(p->job->wait_time > 10000 && p->job->curpri < 3){
-			p->job->curpri++;
-			p->job->wait_time = 0;
+			temp=p->next;
+			touchjob(p);
+			p=temp;
+			continue;
 		}
+		p = p->next;
 	}
+}
+
+void touchjob(struct waitqueue *p){
+	struct waitqueue *pre=head;
+	struct waitqueue *q=head;
+	if(head==NULL)
+		return;
+	while(q!=p&&q!=NULL){
+		pre=q;
+		q=q->next;
+	}
+	if(pre==q)
+		head=head->next;
+	else
+		pre->next=q->next;
+	while(pre->next!=NULL)
+		pre=pre->next;
+	pre->next=p;
+	p->next=NULL;
+	p->job->curpri++;
+	p->job->wait_time = -1000;
 }
 
 int canswitchjob(){

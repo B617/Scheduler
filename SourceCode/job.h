@@ -68,6 +68,7 @@ void showjob(struct jobinfo *job);
 int canswitchjob();
 void showalljobs();
 int hasequalpri();
+void touchjob(struct waitqueue *p);
 
 void error_doit(int errnoflag,const char *fmt,va_list ap);
 void error_sys(const char *fmt,...);
