@@ -16,6 +16,7 @@
 //#define SHOW_SELECT
 //#define SHOW_SWITCH
 //#define SHOW_SIGCHLD
+//#define SHOW_ALLJOBS
 
 int jobid=0;
 int siginfo=1;
@@ -62,7 +63,9 @@ void scheduler()
 	#endif
 	
 	updateall();
-//	showalljobs();
+	#ifdef SHOW_ALLJOBS
+	showalljobs();
+	#endif
 
 	#ifdef SHOW_UPDATE
 		printf("after update\n");
@@ -192,6 +195,11 @@ void touchjob(struct waitqueue *p){
 	struct waitqueue *q=head;
 	if(head==NULL)
 		return;
+	if(p->next==NULL){
+		p->job->curpri++;
+		p->job->wait_time=0;
+		return;
+	}
 	while(q!=p&&q!=NULL){
 		pre=q;
 		q=q->next;
@@ -504,9 +512,19 @@ void do_deq(struct jobcmd deqcmd)
 					selectprev=prev;
 					break;
 				}
+			if(select==NULL){
+				printf("can't find this job :%d\n",deqid);
+				return;
+			}
+			else if(select==head)
+				head=head->next;
+			else{
+//				printf("before...\n");
+//				showalljobs();
 				selectprev->next=select->next;
-				if(select==selectprev)
-					head=NULL;
+//				printf("after...\n");
+//				showalljobs();
+			}
 		}
 		if(select){
 			for(i=0;(select->job->cmdarg)[i]!=NULL;i++){
