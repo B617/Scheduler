@@ -312,6 +312,7 @@ void jobswitch()
 		next = NULL;
 		current->job->state = RUNNING;
 		current->job->round_time=0;
+		current->job->wait_time=0;
 		kill(current->job->pid,SIGCONT);
 		return;
 	}
@@ -335,6 +336,7 @@ void jobswitch()
 		current = next;
 		next = NULL;
 		current->job->state = RUNNING;
+		current->job->round_time=0;
 		current->job->wait_time = 0;
 		kill(current->job->pid,SIGCONT);
 		return;
